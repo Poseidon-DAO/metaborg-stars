@@ -15,6 +15,9 @@ contract MetaborgStars is ERC721Upgradeable {
     uint private ownerBalance;
     uint8[] public availablePagesArray;
     uint public blockDelay;
+    uint public numberOfPacks;
+
+    uint[] public prices; // FE
 
     mapping(uint => uint) priceToPackNumber;
     mapping(uint => bytes32) burnToPhysicalEdition;
@@ -22,6 +25,7 @@ contract MetaborgStars is ERC721Upgradeable {
 
     event withdrawOwnerBalanceEvent(address indexed to, uint amount);
     event setPriceToPackNumberEvent(uint price, uint packNumber);
+    event deletePriceEvent(uint price);
     event setContactPhysicalEditionEvent(uint tokenID, bytes32 email);
     event setBlockDelayEvent(uint oldDelay, uint newDelay);
 
@@ -39,12 +43,27 @@ contract MetaborgStars is ERC721Upgradeable {
         require(_IPFSList.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
         for(uint index = uint(0); index < _IPFSList.length; index++){
             IPFSOverrideConnectionURI[index] = _IPFSList[index];
-            availablePagesArray.push(uint8(index.add(1)));
+            availablePagesArray.push(uint8(index));
         }
     }
 
+    function deletePrice(uint _price) public onlyOwner returns(bool){
+        delete priceToPackNumber[_price];
+        uint[] memory tmpPriceToPack = prices;
+        prices = shiftArray(tmpPriceToPack, _price);
+        prices.pop();
+        numberOfPacks = numberOfPacks.sub(1);
+        emit deletePriceEvent(_price);
+        return true;
+    }
+
     function setPriceToPackNumber(uint _price, uint _packNumber) public onlyOwner returns(bool){
+        require(_price > 0, "CANT_SET_NULL_VALUE");
+        require(_packNumber > 0, "CANT_SET_NULL_PACK_NUMBER");
+        require(priceToPackNumber[_price] == 0, "PRICE_ALREADY_SET");
         priceToPackNumber[_price] = _packNumber;
+        prices.push(_price);
+        numberOfPacks = numberOfPacks.add(1);
         emit setPriceToPackNumberEvent(_price, _packNumber);
         return true;
     }
@@ -76,7 +95,16 @@ contract MetaborgStars is ERC721Upgradeable {
         return randomNumber.mod(_externalMax);
     }
 
-    function shiftArray(uint8[] memory _array, uint _indexToDelete) public pure returns(uint8[] memory){
+    function shiftArray8(uint8[] memory _array, uint _indexToDelete) public pure returns(uint8[] memory){
+        for(uint index = uint(0); index < _array.length.sub(1); index++){
+            if(index >= _indexToDelete) {
+                _array[index] = _array[index.add(1)];            
+            }
+        }
+        return _array;
+    }
+
+    function shiftArray(uint[] memory _array, uint _indexToDelete) public pure returns(uint[] memory){
         for(uint index = uint(0); index < _array.length.sub(1); index++){
             if(index >= _indexToDelete) {
                 _array[index] = _array[index.add(1)];            
@@ -102,8 +130,8 @@ contract MetaborgStars is ERC721Upgradeable {
         uint8[] memory availablePagesArrayTmp = availablePagesArray;
         uint randomIndex = getRandom(tmpPagesAvailable);
         uint pageID = availablePagesArrayTmp[randomIndex];
-        availablePagesArray = new uint8[](uint(tmpPagesAvailable.sub(1)));
-        availablePagesArray = shiftArray(availablePagesArrayTmp, randomIndex);
+        availablePagesArray = new uint8[](uint(tmpPagesAvailable));
+        availablePagesArray = shiftArray8(availablePagesArrayTmp, randomIndex);
         availablePagesArray.pop();
         pagesAvailable = tmpPagesAvailable.sub(1);
         _safeMint(msg.sender, pageID);

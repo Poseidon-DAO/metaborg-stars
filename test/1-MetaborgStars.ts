@@ -182,6 +182,18 @@ describe("Metaborg Stars", function () {
       expect(await metaborgStars.getPackNumber(BN_ONE_GWEI)).to.equals(ethers.BigNumber.from("1"));
     });
 
+    it("Can not set two times the same price", async function () {
+      const {metaborgStars} = await loadFixture(deploySmartContract);
+      await metaborgStars.setPriceToPackNumber(BN_ONE_GWEI,1);
+      expect(await metaborgStars.setPriceToPackNumber(BN_ONE_GWEI,1)).to.be.revertedWith("PRICE_ALREADY_SET");
+    });
+
+    it("Delete price", async function () {
+      const {metaborgStars} = await loadFixture(deploySmartContract);
+      await metaborgStars.setPriceToPackNumber(BN_ONE_GWEI,1);
+      await metaborgStars.deletePrice(BN_ONE_GWEI);
+      expect(await metaborgStars.getPackNumber(BN_ONE_GWEI)).to.equals(ethers.BigNumber.from("0"));
+    });
   });
 
   describe("Customers Buying System", function () {
