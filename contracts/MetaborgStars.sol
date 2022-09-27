@@ -4,6 +4,7 @@ pragma solidity ^0.8.3;
 
 import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol'; 
 import '@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol'; 
 
 contract MetaborgStars is ERC721Upgradeable {
 
@@ -15,30 +16,49 @@ contract MetaborgStars is ERC721Upgradeable {
     uint private ownerBalance;
     uint8[] public availablePagesArray;
     uint public blockDelay;
-    uint public numberOfPacks;
+    address public ERC1155Address;
 
-    uint[] public prices; // FE
+    /*
+        @dev: It will be a waterfall check based on the order specified by priority
+    */
+    enum userGroup {
+        OPEN,           // priority 0
+        WHITELISTED,    // priority 1
+        OWNER           // priority 2
+    }
 
-    mapping(uint => uint) priceToPackNumber;
+    struct groupPriceStruct {
+        uint price1;
+        uint pack1;
+        uint price2;
+        uint pack2;
+        uint price3;
+        uint pack3;
+    }
+
+    mapping(uint => groupPriceStruct) groupPriceMetaData;
     mapping(uint => bytes32) burnToPhysicalEdition;
     mapping(uint => uint) expirationBlock;
+    mapping(address => bool) isWhitelisted;
+    mapping(uint => string) IPFSOverrideConnectionURI;
 
     event withdrawOwnerBalanceEvent(address indexed to, uint amount);
-    event setPriceToPackNumberEvent(uint price, uint packNumber);
+    event setGroupPriceEvent(uint groupID, uint pack1, uint pack2, uint pack3, uint price1, uint price2, uint price3);
     event deletePriceEvent(uint price);
     event setContactPhysicalEditionEvent(uint tokenID, bytes32 email);
     event setBlockDelayEvent(uint oldDelay, uint newDelay);
+    event setWhitelistEvent(address indexed to, bool isWhitelisted);
 
-    mapping(uint => string) IPFSOverrideConnectionURI;
     
     modifier onlyOwner {
         require(owner == msg.sender, "ONLY_OWNER_CAN_RUN_THIS_FUNCTION");
         _;
     }
 
-    function initialize(string[] memory _IPFSList) initializer public {
-        __ERC721_init("Metaborg Stars by Giovanni Motta", "Metaborg-Stars"); 
+    function initialize(string[] memory _IPFSList, address _ERC1155Address) initializer public {
+        __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
         owner = msg.sender;
+        ERC1155Address = _ERC1155Address;
         pagesAvailable = _IPFSList.length;
         require(_IPFSList.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
         for(uint index = uint(0); index < _IPFSList.length; index++){
@@ -47,30 +67,54 @@ contract MetaborgStars is ERC721Upgradeable {
         }
     }
 
-    function deletePrice(uint _price) public onlyOwner returns(bool){
-        delete priceToPackNumber[_price];
-        uint[] memory tmpPriceToPack = prices;
-        prices = shiftArray(tmpPriceToPack, _price);
-        prices.pop();
-        numberOfPacks = numberOfPacks.sub(1);
-        emit deletePriceEvent(_price);
+    function setWhitelistedAddresses(address[] memory _addresses, bool _toWhitelist) public onlyOwner returns(bool){
+        require(_addresses.length > uint(0), "NOT_ENOUGH_ADDRESSES");
+        for(uint index = uint(0); index < _addresses.length; index++){
+            isWhitelisted[_addresses[index]] = _toWhitelist;
+            emit setWhitelistEvent(_addresses[index], _toWhitelist);
+        }
         return true;
     }
 
-    function setPriceToPackNumber(uint _price, uint _packNumber) public onlyOwner returns(bool){
-        require(_price > 0, "CANT_SET_NULL_VALUE");
-        require(_packNumber > 0, "CANT_SET_NULL_PACK_NUMBER");
-        require(priceToPackNumber[_price] == 0, "PRICE_ALREADY_SET");
-        priceToPackNumber[_price] = _packNumber;
-        prices.push(_price);
-        numberOfPacks = numberOfPacks.add(1);
-        emit setPriceToPackNumberEvent(_price, _packNumber);
+    /*
+        @dev: By default the user group is OPEN
+        @usr: We can have 4 cases: 0 (open), 1 (whitelisted), 2 (owner), 3 (whitelisted + owner)
+    */
+    function getUserGroup(address _address) public view returns(uint){
+        uint result = uint(userGroup.OPEN);
+        uint METABORG_DIAMOND_ID = uint(1);
+        uint METABORG_GOLD_ID = uint(2);
+        uint METABORG_ORIGINAL_ID = uint(3);
+        IERC1155Upgradeable IERC1155 = IERC1155Upgradeable(ERC1155Address);
+        require(ERC1155Address != address(0), "ERC1155_NOT_SET");
+        if(isWhitelisted[_address]) {
+            result = uint(userGroup.WHITELISTED);
+        }
+        if(IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) {
+            result = uint(userGroup.OWNER);
+        }
+        return result;
+    }
+    /*
+        @dev: Group ID is equals to 0 (open), 1 (whitelisted), 2 (owner)
+    */
+    function setGroupMetaData(uint[] memory _prices, uint[] memory _packs, uint _groupID) public onlyOwner returns(bool){
+        require(_prices.length == uint(3), "PRICE_ARRAY_LENGTH_DISMATCH");
+        require(_packs.length == uint(3), "PACKS_ARRAY_LENGTH_DISMATCH");
+        require(_groupID <= uint(userGroup.OWNER), "GROUP_ID_NOT_VALID");
+        groupPriceMetaData[_groupID].pack1 = _packs[0];
+        groupPriceMetaData[_groupID].pack2 = _packs[1];
+        groupPriceMetaData[_groupID].pack3 = _packs[2];
+        groupPriceMetaData[_groupID].price1 = _prices[0];
+        groupPriceMetaData[_groupID].price2 = _prices[1];
+        groupPriceMetaData[_groupID].price3 = _prices[2];
+        emit setGroupPriceEvent(_groupID, _packs[0], _packs[1], _packs[2], _prices[0], _prices[1], _prices[2]);
         return true;
     }
 
     function setWaitToBurn(uint _blocks) public onlyOwner returns(bool){
-        emit setBlockDelayEvent(blockDelay, _blocks);
         blockDelay = _blocks;
+        emit setBlockDelayEvent(blockDelay, _blocks);
         return true;
     }
 
@@ -104,17 +148,13 @@ contract MetaborgStars is ERC721Upgradeable {
         return _array;
     }
 
-    function shiftArray(uint[] memory _array, uint _indexToDelete) public pure returns(uint[] memory){
-        for(uint index = uint(0); index < _array.length.sub(1); index++){
-            if(index >= _indexToDelete) {
-                _array[index] = _array[index.add(1)];            
-            }
-        }
-        return _array;
-    }
-
     function buyMetaborgStars() public payable returns(uint8[] memory){
-        uint packsPagesNumber = priceToPackNumber[msg.value];
+        (uint pack1, uint pack2, uint pack3, uint price1, uint price2, uint price3) = getAddressMetadata(msg.sender);
+        require(pack1 > uint(0), "UNDETECTED_METADATA");
+        uint packsPagesNumber;
+        if(price1 == msg.value) packsPagesNumber = pack1;
+        if(price2 == msg.value) packsPagesNumber = pack2;
+        if(price3 == msg.value) packsPagesNumber = pack3;
         uint8[] memory randomIDList = new uint8[](uint(packsPagesNumber)); 
         require(packsPagesNumber > 0, "NOT_VALID_MSG_VALUE");
         require(pagesAvailable >= packsPagesNumber, "NOT_ENOUGH_PAGES_AVAILABLE");
@@ -148,8 +188,12 @@ contract MetaborgStars is ERC721Upgradeable {
         return true;
     }
 
-    function getPackNumber(uint _price) public view returns(uint){
-        return priceToPackNumber[_price];
+    function getAddressMetadata(address _address) public view returns(uint, uint, uint, uint, uint, uint){
+        groupPriceStruct memory groupPrice = groupPriceMetaData[getUserGroup(_address)];
+        if(groupPrice.price1 == uint(0)){ // if not defined
+            groupPrice = groupPriceMetaData[0]; // default
+        }
+        return (groupPrice.pack1, groupPrice.pack2, groupPrice.pack3, groupPrice.price1, groupPrice.price2, groupPrice.price3);
     }
 
     function burnAndReceivePhysicalEdition(uint _tokenID, string memory _email) public returns(bool){
