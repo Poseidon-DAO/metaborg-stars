@@ -5,7 +5,24 @@ const hre = require("hardhat");
 async function main() {
   const smartContractList = [];
 
-  // METABORG DISTRIBUTION
+    // METABORG STARS DISTRIBUTION
+
+    const Metaborg = await hre.ethers.getContractFactory(
+      "MetaborgDistributionERC1155_V2"
+    );
+    const metaborg = await Metaborg.deploy();
+  
+    await metaborg.deployed();
+  
+    // await metaborgStars.initialize(IPFSList)
+    console.log(
+      "Metaborg deployed to:",
+      metaborg.address
+    );
+  
+    smartContractList.push(metaborg.address);
+
+  // METABORG STARS DISTRIBUTION
 
   const MetaborgStars = await hre.ethers.getContractFactory(
     "MetaborgStars"
@@ -26,7 +43,7 @@ async function main() {
   // SMART CONTRACT VERIFICATION
 
   const { exec } = require("child_process");
-  const network = "rinkeby";
+  const network = "goerli";
   exec(
     "npx hardhat verify --network " + network + " " + smartContractList[0],
     (err, stdout, stderr) => {
