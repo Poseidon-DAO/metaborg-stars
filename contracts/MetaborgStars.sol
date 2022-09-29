@@ -5,11 +5,13 @@ pragma solidity ^0.8.3;
 import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol'; 
 import '@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol'; 
+import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol'; 
 
 contract MetaborgStars is ERC721Upgradeable {
 
     using SafeMathUpgradeable for uint256;
- 
+    using StringsUpgradeable for uint256; 
+
     uint private randomizerIndex;
     uint public pagesAvailable;
     address public owner;
@@ -17,6 +19,7 @@ contract MetaborgStars is ERC721Upgradeable {
     uint8[] public availablePagesArray;
     uint public blockDelay;
     address public ERC1155Address;
+    string public baseURI;
 
     /*
         @dev: It will be a waterfall check based on the order specified by priority
@@ -40,8 +43,8 @@ contract MetaborgStars is ERC721Upgradeable {
     mapping(uint => bytes32) burnToPhysicalEdition;
     mapping(uint => uint) expirationBlock;
     mapping(address => bool) isWhitelisted;
-    mapping(uint => string) IPFSOverrideConnectionURI;
 
+    event initializeDataEvent(uint elements, uint indexStart, bytes32 baseURI, address ERC1155Address);
     event withdrawOwnerBalanceEvent(address indexed to, uint amount);
     event setGroupPriceEvent(uint groupID, uint pack1, uint pack2, uint pack3, uint price1, uint price2, uint price3);
     event deletePriceEvent(uint price);
@@ -55,16 +58,17 @@ contract MetaborgStars is ERC721Upgradeable {
         _;
     }
 
-    function initialize(string[] memory _IPFSList, address _ERC1155Address) initializer public {
+    function initialize(uint _elements, uint _indexStart, string memory _baseURI, address _ERC1155Address) initializer public {
         __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
         owner = msg.sender;
         ERC1155Address = _ERC1155Address;
-        pagesAvailable = _IPFSList.length;
-        require(_IPFSList.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
-        for(uint index = uint(0); index < _IPFSList.length; index++){
-            IPFSOverrideConnectionURI[index] = _IPFSList[index];
-            availablePagesArray.push(uint8(index));
+        require(_elements < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
+        for(uint index = uint(0); index < _elements; index++){
+            availablePagesArray.push(uint8(index.add(_indexStart)));
         }
+        baseURI = _baseURI;
+        pagesAvailable = _elements;
+        emit initializeDataEvent(_elements, _indexStart, keccak256((abi.encodePacked(_baseURI))), _ERC1155Address);
     }
 
     function setWhitelistedAddresses(address[] memory _addresses, bool _toWhitelist) public onlyOwner returns(bool){
@@ -119,9 +123,10 @@ contract MetaborgStars is ERC721Upgradeable {
     }
 
     // OPENSEA COMPATIBILITY OVERRIDE
+    // BaseURI Example: "https://<your-gateway>.mypinata.cloud/ipfs/<CID-Folder>/"
 
-    function tokenURI(uint256 _tokenId) override public view returns (string memory) {
-        return IPFSOverrideConnectionURI[_tokenId];
+    function tokenURI(uint256 _tokenId) public override view returns (string memory) {
+        return string(abi.encodePacked(baseURI,_tokenId.toString(),".json"));
     }
 
     // RANDOMIZER LOGIC
