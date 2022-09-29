@@ -6,7 +6,7 @@ async function main() {
   const smartContractList = [];
 
     // METABORG STARS DISTRIBUTION
-
+/*
     const Metaborg = await hre.ethers.getContractFactory(
       "MetaborgDistributionERC1155_V2"
     );
@@ -21,7 +21,7 @@ async function main() {
     );
   
     smartContractList.push(metaborg.address);
-
+*/
   // METABORG STARS DISTRIBUTION
 
   const MetaborgStars = await hre.ethers.getContractFactory(

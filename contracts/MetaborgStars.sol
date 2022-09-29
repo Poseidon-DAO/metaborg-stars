@@ -44,7 +44,7 @@ contract MetaborgStars is ERC721Upgradeable {
     mapping(uint => uint) expirationBlock;
     mapping(address => bool) isWhitelisted;
 
-    event initializeDataEvent(uint elements, uint indexStart, bytes32 baseURI, address ERC1155Address);
+    event initializeDataEvent(uint elements, bytes32 baseURI, address ERC1155Address);
     event withdrawOwnerBalanceEvent(address indexed to, uint amount);
     event setGroupPriceEvent(uint groupID, uint pack1, uint pack2, uint pack3, uint price1, uint price2, uint price3);
     event deletePriceEvent(uint price);
@@ -58,17 +58,17 @@ contract MetaborgStars is ERC721Upgradeable {
         _;
     }
 
-    function initialize(uint _elements, uint _indexStart, string memory _baseURI, address _ERC1155Address) initializer public {
+    function initialize(uint _elements, string memory _baseURI, address _ERC1155Address) initializer public {
         __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
         owner = msg.sender;
         ERC1155Address = _ERC1155Address;
         require(_elements < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
         for(uint index = uint(0); index < _elements; index++){
-            availablePagesArray.push(uint8(index.add(_indexStart)));
+            availablePagesArray.push(uint8(index));
         }
         baseURI = _baseURI;
         pagesAvailable = _elements;
-        emit initializeDataEvent(_elements, _indexStart, keccak256((abi.encodePacked(_baseURI))), _ERC1155Address);
+        emit initializeDataEvent(_elements, keccak256((abi.encodePacked(_baseURI))), _ERC1155Address);
     }
 
     function setWhitelistedAddresses(address[] memory _addresses, bool _toWhitelist) public onlyOwner returns(bool){

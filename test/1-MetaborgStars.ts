@@ -5,7 +5,6 @@ import { ethers } from "hardhat";
 
 const BN_ONE_GWEI = ethers.BigNumber.from("1000000000000000");
 const numberOfElements = 136;
-const startIndex = 6;
 const baseURI = "https://poseidondao.mypinata.cloud/ipfs/QmP9urnKMSDCAkzNyRJzmpJjbhmYuQbLPaYdunQdthYWAh/";
 describe("Metaborg Stars", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -22,7 +21,7 @@ describe("Metaborg Stars", function () {
 
     const MetaborgStars = await ethers.getContractFactory("MetaborgStars");
     const metaborgStars = await MetaborgStars.deploy();
-    await metaborgStars.initialize(numberOfElements, startIndex, baseURI, metaborg.address);
+    await metaborgStars.initialize(numberOfElements, baseURI, metaborg.address);
 
     return { metaborg, metaborgStars, owner, address1, address2, address3 };
   }
