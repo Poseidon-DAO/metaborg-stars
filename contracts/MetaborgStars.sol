@@ -21,6 +21,7 @@ contract MetaborgStars is ERC721Upgradeable {
     uint public blockDelay;
     address public ERC1155Address;
     string public baseURI;
+    uint8 visibility;
 
     /*
         @dev: It will be a waterfall check based on the order specified by priority
@@ -30,6 +31,14 @@ contract MetaborgStars is ERC721Upgradeable {
         OPEN,           // priority 0
         WHITELISTED,    // priority 1
         OWNER           // priority 2
+    }
+
+    enum visibilityInfo {
+        OPEN,
+        OWNER,
+        WHITELISTED,
+        OWNER_AND_WHITELISTED,
+        CLOSED
     }
 
     struct pagesStruct {
@@ -94,18 +103,19 @@ contract MetaborgStars is ERC721Upgradeable {
         @usr: We can have 4 cases: 0 (open), 1 (whitelisted), 2 (owner), 3 (whitelisted + owner)
     */
     function getUserGroup(address _address) public view returns(uint){
-        uint result = uint(userGroup.OPEN);
+        uint result = uint(userGroup.OPEN); // = 0
         uint METABORG_DIAMOND_ID = uint(1);
         uint METABORG_GOLD_ID = uint(2);
         uint METABORG_ORIGINAL_ID = uint(3);
         IERC1155Upgradeable IERC1155 = IERC1155Upgradeable(ERC1155Address);
         require(ERC1155Address != address(0), "ERC1155_NOT_SET");
         if(isWhitelisted[_address]) {
-            result = uint(userGroup.WHITELISTED);
+            result = result.add(uint(userGroup.WHITELISTED)); // = 1
         }
         if(IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) {
-            result = uint(userGroup.OWNER);
+            result = result.add(uint(userGroup.OWNER)); // 2
         }
+        // = 3 if both
         return result;
     }
     /*
@@ -128,6 +138,12 @@ contract MetaborgStars is ERC721Upgradeable {
     function setWaitToBurn(uint _blocks) public onlyOwner returns(bool){
         blockDelay = _blocks;
         emit setBlockDelayEvent(blockDelay, _blocks);
+        return true;
+    }
+
+    function changeVisibility(uint8 _visibility) public onlyOwner returns(bool){
+        require(visibility != _visibility, "SWITCH_DISMATCH");
+        visibility = _visibility;
         return true;
     }
 
@@ -163,6 +179,22 @@ contract MetaborgStars is ERC721Upgradeable {
     }
 
     function buyMetaborgStars() public payable returns(uint8[] memory){
+        uint userGroup = getUserGroup(msg.sender);
+        if(visibility == uint8(visibilityInfo.OPEN)){ // OPEN TO EVERYONE
+            require(userGroup == uint(0), "RESERVED_FUNCTION");
+        }
+        if(visibility == uint8(visibilityInfo.OWNER)){ // OPEN TO OWNER
+            require(userGroup == uint(1), "RESERVED_FUNCTION");
+        }
+        if(visibility == uint8(visibilityInfo.WHITELISTED)){ // OPEN TO WHITELISTED
+            require(userGroup == uint(2), "RESERVED_FUNCTION");
+        }
+        if(visibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED)){ // OPEN TO OWNER AND WHITELISTED
+            require(userGroup == uint(3), "RESERVED_FUNCTION");
+        }
+        if(visibility >= uint8(visibilityInfo.CLOSED)){ // CLOSED
+             revert();
+        }
         (uint pack1, uint pack2, uint pack3, uint price1, uint price2, uint price3) = getAddressMetadata(msg.sender);
         require(pack1 > uint(0), "UNDETECTED_METADATA");
         uint packsPagesNumber;
@@ -229,6 +261,7 @@ contract MetaborgStars is ERC721Upgradeable {
         if(groupPrice.price1 == uint(0)){ // if not defined
             groupPrice = groupPriceMetaData[0]; // default
         }
+
         return (groupPrice.pack1, groupPrice.pack2, groupPrice.pack3, groupPrice.price1, groupPrice.price2, groupPrice.price3);
     }
 
