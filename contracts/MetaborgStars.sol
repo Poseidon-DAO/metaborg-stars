@@ -17,6 +17,7 @@ contract MetaborgStars is ERC721Upgradeable {
     address public owner;
     uint private ownerBalance;
     uint8[] public availablePagesArray;
+    uint8[] public availableStarsArray;
     uint public blockDelay;
     address public ERC1155Address;
     string public baseURI;
@@ -24,10 +25,16 @@ contract MetaborgStars is ERC721Upgradeable {
     /*
         @dev: It will be a waterfall check based on the order specified by priority
     */
+
     enum userGroup {
         OPEN,           // priority 0
         WHITELISTED,    // priority 1
         OWNER           // priority 2
+    }
+
+    struct pagesStruct {
+        uint8 pageNumber;
+        uint8 stars;
     }
 
     struct groupPriceStruct {
@@ -58,17 +65,19 @@ contract MetaborgStars is ERC721Upgradeable {
         _;
     }
 
-    function initialize(uint _elements, string memory _baseURI, address _ERC1155Address) initializer public {
+    function initialize(uint[] memory _stars, string memory _baseURI, address _ERC1155Address) initializer public {
         __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
         owner = msg.sender;
         ERC1155Address = _ERC1155Address;
-        require(_elements < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
-        for(uint index = uint(0); index < _elements; index++){
+        require(_stars.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
+        for(uint index = uint(0); index < _stars.length; index++){
+            require(_stars[index] >= 0 && _stars[index] <= 5, "STAR_VALUE_NOT_VALID");
+            availableStarsArray.push(uint8(_stars[index]));
             availablePagesArray.push(uint8(index));
         }
         baseURI = _baseURI;
-        pagesAvailable = _elements;
-        emit initializeDataEvent(_elements, keccak256((abi.encodePacked(_baseURI))), _ERC1155Address);
+        pagesAvailable = _stars.length;
+        emit initializeDataEvent(_stars.length, keccak256((abi.encodePacked(_baseURI))), _ERC1155Address);
     }
 
     function setWhitelistedAddresses(address[] memory _addresses, bool _toWhitelist) public onlyOwner returns(bool){
@@ -163,18 +172,40 @@ contract MetaborgStars is ERC721Upgradeable {
         uint8[] memory randomIDList = new uint8[](uint(packsPagesNumber)); 
         require(packsPagesNumber > 0, "NOT_VALID_MSG_VALUE");
         require(pagesAvailable >= packsPagesNumber, "NOT_ENOUGH_PAGES_AVAILABLE");
+        bool forceStar;
         for(uint index = uint(0); index < packsPagesNumber; index++) {
-            randomIDList[index] = buySinglePageAndGetPageID();
+            if(index == packsPagesNumber.sub(1) && !forceStar){
+                forceStar = true;
+            }
+            randomIDList[index] = buySinglePageAndGetPageID(forceStar);
         }
         ownerBalance = ownerBalance.add(msg.value);
         return randomIDList;
     }    
 
-    function buySinglePageAndGetPageID() private returns(uint8){
+    function getForcedStarArray(uint8[] memory _starsArray) private returns(uint8[] memory, uint){
+        uint resultIndex = 0;
+        for(uint index = uint(0); index < _starsArray.length; index++){
+            if(_starsArray[index] == uint(3) || _starsArray[index] == uint(4)) {
+                _starsArray[resultIndex] = uint8(index);
+                resultIndex++;
+            }
+        }
+        return (_starsArray, resultIndex); 
+    }
+
+    function buySinglePageAndGetPageID(bool _forceStar) private returns(uint8){
         uint tmpPagesAvailable = pagesAvailable;
         uint8[] memory availablePagesArrayTmp = availablePagesArray;
-        uint randomIndex = getRandom(tmpPagesAvailable);
-        uint pageID = availablePagesArrayTmp[randomIndex];
+        uint randomIndex;
+        uint pageID;
+        if(_forceStar) {
+            (uint8[] memory availableForcedPagesArray, uint elements) = getForcedStarArray(availablePagesArrayTmp);
+            randomIndex = availableForcedPagesArray[getRandom(elements.sub(1))];    // Filtered random Index research
+        } else {
+            randomIndex = getRandom(tmpPagesAvailable);                             // Full random Index research
+        }
+        pageID = availablePagesArrayTmp[randomIndex];
         availablePagesArray = new uint8[](uint(tmpPagesAvailable));
         availablePagesArray = shiftArray8(availablePagesArrayTmp, randomIndex);
         availablePagesArray.pop();
