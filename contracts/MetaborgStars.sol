@@ -303,4 +303,8 @@ contract MetaborgStars is ERC721Upgradeable {
         expiration <= block.number ? result = 0 : result = expiration.sub(block.number);
         return result;
     }
+
+    function getAvailablePagesNumber() public view returns(uint8){
+        return availablePagesArray.length;
+    }
 }
