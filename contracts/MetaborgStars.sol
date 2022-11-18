@@ -224,20 +224,10 @@ contract MetaborgStars is ERC721Upgradeable {
             if(stars == uint(3) || stars == uint(4)) specialPage = true; 
             randomIDList[index] = uint8(pageID);
         }
-        specialPage = false; // RE USE VARIABLE TO AVOID TOO DEEP CODE ERROR, used such a shift identification 
-        for(uint index = uint(0); index < availablePagesArray.length; index++) {
-            if(index < tmpPagesAvailable.length){
-                if(specialPage || availablePagesArray[index] != tmpPagesAvailable[index]){ // availablePagesArray no readed if special page = true;
-                    availablePagesArray[index] = tmpPagesAvailable[index];
-                    availableStarsArray[index] = tmpStarsAvailable[index];
-                    specialPage = true;
-                }
-            } else {
-                availablePagesArray.pop();
-                availableStarsArray.pop();
-            }
- 
-        }
+        availablePagesArray = new uint8[](tmpPagesAvailable.length);
+        availableStarsArray = new uint8[](tmpStarsAvailable.length);
+        availablePagesArray = tmpPagesAvailable;
+        availableStarsArray = tmpStarsAvailable;
         ownerBalance = ownerBalance.add(msg.value);
         return randomIDList;
     }    

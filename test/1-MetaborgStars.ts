@@ -202,11 +202,23 @@ describe("Metaborg Stars", function () {
         const price1 = [10,20,30];
         const packs1 = [1,2,11];
         await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
-        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[2]}); // 136 elements   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[2]});    
         expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
       });
 
-     
+      it("Full Distribution Manga within 6 calls", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
+        const price1 = [10,20,30];
+        const packs1 = [1,2,11];
+        await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
+      });
 
   });
   
