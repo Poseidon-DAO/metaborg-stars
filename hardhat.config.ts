@@ -9,6 +9,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "hardhat-abi-exporter";
 import "@nomiclabs/hardhat-web3";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 // TODO: reenable solidity-coverage when it works
 // import "solidity-coverage";
@@ -28,7 +29,12 @@ const config: HardhatUserConfig = {
     // compilers: [{ version: "0.4.18", settings: {} }],
     // compilers: [{ version: "0.5.0", settings: {} }],
     // compilers: [{ version: "0.7.6", settings: {} }],
-    compilers: [{ version: "0.8.0"}, {version: "0.8.1"}, {version: "0.8.3", settings: {} }],
+    compilers: [{ version: "0.8.0"}, {version: "0.8.1"}, {version: "0.8.3", settings: {
+      optimizer: {
+        enabled: true,
+        runs: 10,
+      },
+    }, }],
   },
   abiExporter: {
     path: './abi',

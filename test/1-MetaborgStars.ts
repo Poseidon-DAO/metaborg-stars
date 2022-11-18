@@ -4,7 +4,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 const BN_ONE_GWEI = ethers.BigNumber.from("1000000000000000");
-const numberOfElements = 136;
+const availablesID=[0,1,2,3,4,5,6,7,8,9,10];
+const stars=[1,4,1,1,0,1,2,1,1,0,3];
 const baseURI = "https://poseidondao.mypinata.cloud/ipfs/QmP9urnKMSDCAkzNyRJzmpJjbhmYuQbLPaYdunQdthYWAh/";
 describe("Metaborg Stars", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -21,7 +22,7 @@ describe("Metaborg Stars", function () {
 
     const MetaborgStars = await ethers.getContractFactory("MetaborgStars");
     const metaborgStars = await MetaborgStars.deploy();
-    await metaborgStars.initialize(numberOfElements, baseURI, metaborg.address);
+    await metaborgStars.initialize(availablesID, stars, baseURI, metaborg.address);
 
     return { metaborg, metaborgStars, owner, address1, address2, address3 };
   }
@@ -30,11 +31,6 @@ describe("Metaborg Stars", function () {
     it("Check the owner address", async function () {
       const {metaborgStars, owner} = await loadFixture(deploySmartContract);
       expect(await metaborgStars.owner()).to.equals(owner.address);
-    });
-
-    it("Check the pages availables", async function () {
-      const {metaborgStars} = await loadFixture(deploySmartContract);
-      expect(await metaborgStars.pagesAvailable()).to.equals(numberOfElements);
     });
 
     it("Set Group Metadata", async function () {
@@ -58,7 +54,7 @@ describe("Metaborg Stars", function () {
       const prices = [BN_ONE_GWEI, BN_ONE_GWEI.mul(2), BN_ONE_GWEI.mul(3)];
       const packs = [1, 2, 3];
       const groupID = 100; //errore
-      expect(await metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("GROUP_ID_NOT_VALID");
+      await expect(metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("GROUP_ID_NOT_VALID");
     });
 
     it("Can't Set Group Metadata if price array length is not equals to 3", async function () {
@@ -66,7 +62,7 @@ describe("Metaborg Stars", function () {
       const prices = [BN_ONE_GWEI, BN_ONE_GWEI.mul(2)];
       const packs = [1, 2, 3];
       const groupID = 0; 
-      expect(await metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("PRICE_ARRAY_LENGTH_DISMATCH");
+      await expect(metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("PRICE_ARRAY_LENGTH_DISMATCH");
     });
 
     it("Can't Set Group Metadata if packs array length is not equals to 3", async function () {
@@ -74,7 +70,7 @@ describe("Metaborg Stars", function () {
       const prices = [BN_ONE_GWEI, BN_ONE_GWEI.mul(2), BN_ONE_GWEI.mul(3)];
       const packs = [1];
       const groupID = 0; 
-      expect(await metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("PACKS_ARRAY_LENGTH_DISMATCH");
+      await expect(metaborgStars.setGroupMetaData(prices, packs, groupID)).to.be.revertedWith("PACKS_ARRAY_LENGTH_DISMATCH");
     });
 
     it("Set Wait to burn", async function () {
@@ -130,7 +126,7 @@ describe("Metaborg Stars", function () {
         await metaborgStars.setGroupMetaData(price2, packs2, 1); // price[], pack[], group
         await metaborgStars.setGroupMetaData(price3, packs3, 2); // price[], pack[], group
 
-        /* check metaborg test to understand mock data*/
+        // check metaborg test to understand mock data
         await metaborg.createMangaDistribution(1,1,1,1,[address1.address],[3], 1, 2, 3, ["#1", "#2", "#3"],false);
         await metaborg.connect(address1).mintRandomManga(1, {value: 1});
 
@@ -149,13 +145,13 @@ describe("Metaborg Stars", function () {
         await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
         await metaborgStars.setGroupMetaData(price2, packs2, 1); // price[], pack[], group
         await metaborgStars.setGroupMetaData(price3, packs3, 2); // price[], pack[], group
+        await metaborgStars.setGroupMetaData(price3, packs3, 3); // price[], pack[], group
 
         await metaborgStars.setWhitelistedAddresses([address1.address], true);
 
-        /* check metaborg test to understand mock data*/
+        // check metaborg test to understand mock data
         await metaborg.createMangaDistribution(1,1,1,1,[address1.address],[3], 1, 2, 3, ["#1", "#2", "#3"],false);
         await metaborg.connect(address1).mintRandomManga(1, {value: 1});
-
         await metaborgStars.connect(address1).buyMetaborgStars({value: price3[1]});
         expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from([packs3[1]]));
       });
@@ -174,7 +170,7 @@ describe("Metaborg Stars", function () {
 
         await metaborgStars.setWhitelistedAddresses([address1.address], true);
 
-        /* check metaborg test to understand mock data*/
+        // check metaborg test to understand mock data
         await metaborg.createMangaDistribution(1,1,1,1,[address1.address],[3], 1, 2, 3, ["#1", "#2", "#3"],false);
         await metaborg.connect(address1).mintRandomManga(1, {value: 1});
 
@@ -193,5 +189,25 @@ describe("Metaborg Stars", function () {
         const newBalance = await ethers.provider.getBalance(address2.address);
         expect(newBalance).to.equals(oldBalance.add(ethers.BigNumber.from(price1[1])));
       });
+
+      it("Airdrop Manga", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);        
+        await metaborgStars.airdropManga([address1.address, address2.address], [1,2]);
+        expect(await metaborgStars.ownerOf(1)).to.equals(address1.address);
+        expect(await metaborgStars.ownerOf(2)).to.equals(address2.address);
+      });
+
+      it("Full Distribution Manga", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
+        const price1 = [10,20,30];
+        const packs1 = [1,2,11];
+        await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[2]}); // 136 elements   
+        expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
+      });
+
+     
+
   });
+  
 });
