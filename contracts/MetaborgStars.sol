@@ -304,7 +304,7 @@ contract MetaborgStars is ERC721Upgradeable {
         return result;
     }
 
-    function getAvailablePagesNumber() public view returns(uint8){
+    function getAvailablePagesNumber() public view returns(uint){
         return availablePagesArray.length;
     }
 }
