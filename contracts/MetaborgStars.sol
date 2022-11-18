@@ -240,7 +240,7 @@ contract MetaborgStars is ERC721Upgradeable {
         return true;
     }
 
-    function getForcedStarArray(uint8[] memory _starsArray) public pure returns(uint8[] memory, uint){
+    function getForcedStarArray(uint8[] memory _starsArray) private pure returns(uint8[] memory, uint){
         uint resultIndex = 0;
         for(uint index = uint(0); index < _starsArray.length; index++){
             if(_starsArray[index] == uint(3) || _starsArray[index] == uint(4)) {

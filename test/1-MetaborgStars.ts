@@ -216,10 +216,11 @@ describe("Metaborg Stars", function () {
         await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
         await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
         await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
-        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});   
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[0]});   
         expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
       });
 
+        // check force star
   });
   
 });
