@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 
 const BN_ONE_GWEI = ethers.BigNumber.from("1000000000000000");
 const availablesID=[0,1,2,3,4,5,6,7,8,9,10];
-const stars=[1,4,1,1,0,1,2,1,1,0,3];
+const stars=[1,4,1,1,0,1,2,1,1,0,1];
 const baseURI = "https://poseidondao.mypinata.cloud/ipfs/QmP9urnKMSDCAkzNyRJzmpJjbhmYuQbLPaYdunQdthYWAh/";
 describe("Metaborg Stars", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -192,10 +192,17 @@ describe("Metaborg Stars", function () {
 
       it("Airdrop Manga", async function () {
         const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);        
-        await metaborgStars.airdropManga([address1.address, address2.address], [1,2]);
-        expect(await metaborgStars.ownerOf(1)).to.equals(address1.address);
-        expect(await metaborgStars.ownerOf(2)).to.equals(address2.address);
+        await metaborgStars.airdropManga([address1.address, address2.address], [11,12]);
+        expect(await metaborgStars.ownerOf(11)).to.equals(address1.address);
+        expect(await metaborgStars.ownerOf(12)).to.equals(address2.address);
       });
+
+      it("Airdrop Manga - Can't set duplicates IDs", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);        ;
+        await expect(metaborgStars.airdropManga([address1.address, address2.address], [1,2])).to.be.revertedWith("ONE_OR_MORE_ID_ALREADY_SET");
+
+      });
+
 
       it("Full Distribution Manga", async function () {
         const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
@@ -220,7 +227,22 @@ describe("Metaborg Stars", function () {
         expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
       });
 
-        // check force star
+      it("Check if with 3 or 5 pack we receive a 3 or 4 stars", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
+        const price1 = [10,20,30];
+        const packs1 = [1,2,11];
+        const index4Stars = 1
+        await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});
+        expect(await metaborgStars.ownerOf(index4Stars)).to.equals(address1.address);
+      });
+
+
+
   });
   
 });
+/*
+const availablesID=[0,1,2,3,4,5,6,7,8,9,10];
+const stars=[1,4,1,1,0,1,2,1,1,0,3];
+*/

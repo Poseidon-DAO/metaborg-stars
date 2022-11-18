@@ -65,7 +65,8 @@ contract MetaborgStars is ERC721Upgradeable {
     }
 
     function initialize(uint[] memory _availableIDs, uint8[] memory _stars, string memory _baseURI, address _ERC1155Address) initializer public {
-        __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
+        __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars");
+        require(!checkDuplicates(_availableIDs), "ONE_OR_MORE_ID_ALREADY_SET");
         owner = msg.sender;
         ERC1155Address = _ERC1155Address;
         require(_stars.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
@@ -91,21 +92,17 @@ contract MetaborgStars is ERC721Upgradeable {
         @dev: By default the user group is OPEN
         @usr: We can have 4 cases: 0 (open), 1 (whitelisted), 2 (owner), 3 (whitelisted + owner)
     */
-    function getUserGroup(address _address) public view returns(uint){
+    function getUserGroup(address _address) public view returns(uint8){
         uint result = uint(visibilityInfo.OPEN); // = 0
         uint METABORG_DIAMOND_ID = uint(1);
         uint METABORG_GOLD_ID = uint(2);
         uint METABORG_ORIGINAL_ID = uint(3);
         IERC1155Upgradeable IERC1155 = IERC1155Upgradeable(ERC1155Address);
         require(ERC1155Address != address(0), "ERC1155_NOT_SET");
-        if(isWhitelisted[_address]) {
-            result = result.add(uint(visibilityInfo.WHITELISTED)); // = 1
-        }
-        if(IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) {
-            result = result.add(uint(visibilityInfo.OWNER)); // 2
-        }
+        isWhitelisted[_address] ? result = result.add(uint(visibilityInfo.WHITELISTED)) : uint(0); // = 1
+        (IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) ? result = result.add(uint(visibilityInfo.OWNER)) : uint(0); // 2
         // = 3 if both
-        return result;
+        return uint8(result);
     }
     /*
         @dev: Group ID is equals to 0 (open), 1 (whitelisted), 2 (owner), 3 (whitelisted+owner)
@@ -180,48 +177,39 @@ contract MetaborgStars is ERC721Upgradeable {
         return r;
     }
  
+    function checkVisibility(uint8 _userGroup) public view returns(bool){
+        uint8 tmpVisibility = visibility;
+        bool result;
+        tmpVisibility == uint8(visibilityInfo.OPEN) && _userGroup <= uint(3) ? result = true : true; // OPEN TO EVERYONE
+        tmpVisibility == uint8(visibilityInfo.OWNER) && _userGroup == uint(1) ? result = true : true; // OPEN TO OWNER
+        tmpVisibility == uint8(visibilityInfo.WHITELISTED) && _userGroup == uint(2) ? result = true : true; // OPEN TO WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED) && _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER OR WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED) && _userGroup == uint(3) ? result = true : true; // OPEN TO OWNER AND WHITELISTED
+        return result;
+    }
+
     function buyMetaborgStars() public payable returns(uint8[] memory){
-        uint checkUserGroup = getUserGroup(msg.sender);
-        // VISIBILITY CHECKING
-        if(visibility == uint8(visibilityInfo.OPEN)){ // OPEN TO EVERYONE
-            require(checkUserGroup <= uint(3), "RESERVED_FUNCTION");
-        }
-        if(visibility == uint8(visibilityInfo.OWNER)){ // OPEN TO OWNER
-            require(checkUserGroup == uint(1), "RESERVED_FUNCTION");
-        }
-        if(visibility == uint8(visibilityInfo.WHITELISTED)){ // OPEN TO WHITELISTED
-            require(checkUserGroup == uint(2), "RESERVED_FUNCTION");
-        }
-        if(visibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED)){ // OPEN TO OWNER OR WHITELISTED
-            require(checkUserGroup == uint(1) || checkUserGroup == uint(2), "RESERVED_FUNCTION");
-        }
-        if(visibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED)){ // OPEN TO OWNER AND WHITELISTED
-            require(checkUserGroup == uint(3), "RESERVED_FUNCTION");
-        }
-        if(visibility >= uint8(visibilityInfo.CLOSED)){ // CLOSED
-             revert();
-        }
+        uint8 checkUserGroup = getUserGroup(msg.sender);
+        require(checkVisibility(checkUserGroup), "RESTRICTED_FUNCTION");
         // GET METADATA
         (uint8 pack1, uint8 pack2, uint8 pack3, uint price1, uint price2, uint price3) = getAddressMetadata(msg.sender);
         require(pack1 > uint(0), "UNDETECTED_METADATA");
         uint8 packsPagesNumber;
         uint8[] memory tmpPagesAvailable = availablePagesArray;
         uint8[] memory tmpStarsAvailable = availableStarsArray;
-        if(price1 == msg.value) packsPagesNumber = pack1;
-        if(price2 == msg.value) packsPagesNumber = pack2;
-        if(price3 == msg.value) packsPagesNumber = pack3;
+        price1 == msg.value ? packsPagesNumber = pack1 : uint8(0);
+        price2 == msg.value ? packsPagesNumber = pack2 : uint8(0);
+        price3 == msg.value ? packsPagesNumber = pack3 : uint8(0);
         uint8[] memory randomIDList = new uint8[](uint(packsPagesNumber)); 
         require(packsPagesNumber > 0, "NOT_VALID_MSG_VALUE");
         require(tmpPagesAvailable.length >= packsPagesNumber, "NOT_ENOUGH_PAGES_AVAILABLE");
         // BUYING SYSTEM
-        bool forceStar;
         bool specialPage;
         uint8 pageID;
         uint stars;
         for(uint index = uint(0); index < packsPagesNumber; index++) {
-            if(index == packsPagesNumber.sub(1) && !forceStar && !specialPage && (packsPagesNumber == pack2 || packsPagesNumber == pack3)) forceStar = true;
-            (pageID, tmpPagesAvailable, tmpStarsAvailable, stars) = buySinglePageAndGetPageID(tmpPagesAvailable, tmpStarsAvailable, forceStar);
-            if(stars == uint(3) || stars == uint(4)) specialPage = true; 
+            (pageID, tmpPagesAvailable, tmpStarsAvailable, stars) = buySinglePageAndGetPageID(tmpPagesAvailable, tmpStarsAvailable, index == packsPagesNumber.sub(1) && !specialPage && (packsPagesNumber == pack2 || packsPagesNumber == pack3));
+            stars == uint(3) || stars == uint(4) ? specialPage = true : true; 
             randomIDList[index] = uint8(pageID);
         }
         availablePagesArray = new uint8[](tmpPagesAvailable.length);
@@ -233,6 +221,7 @@ contract MetaborgStars is ERC721Upgradeable {
     }    
 
     function airdropManga(address[] memory _addresses, uint[] memory _IDs) public onlyOwner returns(bool){
+        require(!checkDuplicates(_IDs), "ONE_OR_MORE_ID_ALREADY_SET");
         require(_addresses.length == _IDs.length, "LENGHT_DISMATCH");
         for(uint index = uint(0); index < _addresses.length; index++){
             _safeMint(_addresses[index], _IDs[index]);
@@ -304,7 +293,18 @@ contract MetaborgStars is ERC721Upgradeable {
         return result;
     }
 
-    function getAvailablePagesNumber() public view returns(uint8){
+    function getAvailablePagesNumber() public view returns(uint){
         return availablePagesArray.length;
+    }
+
+    function checkDuplicates(uint[] memory _IDs) public view returns(bool){
+        bool r;
+        bool f;
+        for(uint i = uint(0); i < _IDs.length; i++){
+            for(uint j = uint(0); j < availablePagesArray.length; j++) f || availablePagesArray[j] == _IDs[i] ? f = true : true;
+            r = r || f;
+            f = false;
+        }
+        return r;
     }
 }
