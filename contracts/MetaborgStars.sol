@@ -98,12 +98,8 @@ contract MetaborgStars is ERC721Upgradeable {
         uint METABORG_ORIGINAL_ID = uint(3);
         IERC1155Upgradeable IERC1155 = IERC1155Upgradeable(ERC1155Address);
         require(ERC1155Address != address(0), "ERC1155_NOT_SET");
-        if(isWhitelisted[_address]) {
-            result = result.add(uint(visibilityInfo.WHITELISTED)); // = 1
-        }
-        if(IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) {
-            result = result.add(uint(visibilityInfo.OWNER)); // 2
-        }
+        isWhitelisted[_address] ? result = result.add(uint(visibilityInfo.WHITELISTED)) : uint(0); // = 1
+        (IERC1155.balanceOf(_address, METABORG_DIAMOND_ID) > 0 || IERC1155.balanceOf(_address, METABORG_GOLD_ID) > 0 || IERC1155.balanceOf(_address, METABORG_ORIGINAL_ID) > 0) ? result = result.add(uint(visibilityInfo.OWNER)) : uint(0); // 2
         // = 3 if both
         return uint8(result);
     }
@@ -183,22 +179,11 @@ contract MetaborgStars is ERC721Upgradeable {
     function checkVisibility(uint8 _userGroup) public returns(bool){
         uint8 tmpVisibility = visibility;
         bool result;
-        if(tmpVisibility == uint8(visibilityInfo.OPEN)){ // OPEN TO EVERYONE
-            _userGroup <= uint(3) ? result = true : true;
-        }
-        if(tmpVisibility == uint8(visibilityInfo.OWNER)){ // OPEN TO OWNER
-            _userGroup == uint(1) ? result = true : true;
-        }
-        if(tmpVisibility == uint8(visibilityInfo.WHITELISTED)){ // OPEN TO WHITELISTED
-            _userGroup == uint(2) ? result = true : true;
-        }
-        if(tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED)){ // OPEN TO OWNER OR WHITELISTED
-            _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true;
-
-        }
-        if(tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED)){ // OPEN TO OWNER AND WHITELISTED
-            _userGroup == uint(3) ? result = true : true;
-        }
+        if(tmpVisibility == uint8(visibilityInfo.OPEN)) _userGroup <= uint(3) ? result = true : true; // OPEN TO EVERYONE
+        if(tmpVisibility == uint8(visibilityInfo.OWNER)) _userGroup == uint(1) ? result = true : true; // OPEN TO OWNER
+        if(tmpVisibility == uint8(visibilityInfo.WHITELISTED)) _userGroup == uint(2) ? result = true : true; // OPEN TO WHITELISTED
+        if(tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED)) _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER OR WHITELISTED
+        if(tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED)) _userGroup == uint(3) ? result = true : true; // OPEN TO OWNER AND WHITELISTED
         return result;
     }
 
@@ -211,9 +196,9 @@ contract MetaborgStars is ERC721Upgradeable {
         uint8 packsPagesNumber;
         uint8[] memory tmpPagesAvailable = availablePagesArray;
         uint8[] memory tmpStarsAvailable = availableStarsArray;
-        if(price1 == msg.value) packsPagesNumber = pack1;
-        if(price2 == msg.value) packsPagesNumber = pack2;
-        if(price3 == msg.value) packsPagesNumber = pack3;
+        price1 == msg.value ? packsPagesNumber = pack1 : uint8(0);
+        price2 == msg.value ? packsPagesNumber = pack2 : uint8(0);
+        price3 == msg.value ? packsPagesNumber = pack3 : uint8(0);
         uint8[] memory randomIDList = new uint8[](uint(packsPagesNumber)); 
         require(packsPagesNumber > 0, "NOT_VALID_MSG_VALUE");
         require(tmpPagesAvailable.length >= packsPagesNumber, "NOT_ENOUGH_PAGES_AVAILABLE");
@@ -223,7 +208,7 @@ contract MetaborgStars is ERC721Upgradeable {
         uint stars;
         for(uint index = uint(0); index < packsPagesNumber; index++) {
             (pageID, tmpPagesAvailable, tmpStarsAvailable, stars) = buySinglePageAndGetPageID(tmpPagesAvailable, tmpStarsAvailable, index == packsPagesNumber.sub(1) && !specialPage && (packsPagesNumber == pack2 || packsPagesNumber == pack3));
-            if(stars == uint(3) || stars == uint(4)) specialPage = true; 
+            stars == uint(3) || stars == uint(4) ? specialPage = true : true; 
             randomIDList[index] = uint8(pageID);
         }
         availablePagesArray = new uint8[](tmpPagesAvailable.length);
