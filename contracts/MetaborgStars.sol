@@ -176,14 +176,14 @@ contract MetaborgStars is ERC721Upgradeable {
         return r;
     }
  
-    function checkVisibility(uint8 _userGroup) public returns(bool){
+    function checkVisibility(uint8 _userGroup) public view returns(bool){
         uint8 tmpVisibility = visibility;
         bool result;
-        if(tmpVisibility == uint8(visibilityInfo.OPEN)) _userGroup <= uint(3) ? result = true : true; // OPEN TO EVERYONE
-        if(tmpVisibility == uint8(visibilityInfo.OWNER)) _userGroup == uint(1) ? result = true : true; // OPEN TO OWNER
-        if(tmpVisibility == uint8(visibilityInfo.WHITELISTED)) _userGroup == uint(2) ? result = true : true; // OPEN TO WHITELISTED
-        if(tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED)) _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER OR WHITELISTED
-        if(tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED)) _userGroup == uint(3) ? result = true : true; // OPEN TO OWNER AND WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OPEN) && _userGroup <= uint(3) ? result = true : true; // OPEN TO EVERYONE
+        tmpVisibility == uint8(visibilityInfo.OWNER) && _userGroup == uint(1) ? result = true : true; // OPEN TO OWNER
+        tmpVisibility == uint8(visibilityInfo.WHITELISTED) && _userGroup == uint(2) ? result = true : true; // OPEN TO WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED) && _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER OR WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED) && _userGroup == uint(3) ? result = true : true; // OPEN TO OWNER AND WHITELISTED
         return result;
     }
 
