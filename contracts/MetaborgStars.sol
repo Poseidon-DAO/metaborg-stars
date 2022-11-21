@@ -65,7 +65,8 @@ contract MetaborgStars is ERC721Upgradeable {
     }
 
     function initialize(uint[] memory _availableIDs, uint8[] memory _stars, string memory _baseURI, address _ERC1155Address) initializer public {
-        __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars"); 
+        __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars");
+        require(!checkDuplicates(_availableIDs), "ONE_OR_MORE_ID_ALREADY_SET");
         owner = msg.sender;
         ERC1155Address = _ERC1155Address;
         require(_stars.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
@@ -220,6 +221,7 @@ contract MetaborgStars is ERC721Upgradeable {
     }    
 
     function airdropManga(address[] memory _addresses, uint[] memory _IDs) public onlyOwner returns(bool){
+        require(!checkDuplicates(_IDs), "ONE_OR_MORE_ID_ALREADY_SET");
         require(_addresses.length == _IDs.length, "LENGHT_DISMATCH");
         for(uint index = uint(0); index < _addresses.length; index++){
             _safeMint(_addresses[index], _IDs[index]);
@@ -293,5 +295,18 @@ contract MetaborgStars is ERC721Upgradeable {
 
     function getAvailablePagesNumber() public view returns(uint){
         return availablePagesArray.length;
+    }
+
+    function checkDuplicates(uint[] memory _IDs) public view returns(bool){
+        bool r;
+        bool p;
+        for(uint i = uint(0); i < _IDs.length; i++){
+            for(uint j = uint(0); j < availablePagesArray.length; j++){
+                p || availablePagesArray[j] == _IDs[i] ? p = true : true;
+            }
+            r = r || p;
+            p = false;
+        }
+        return r;
     }
 }
