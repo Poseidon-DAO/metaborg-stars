@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 
 const BN_ONE_GWEI = ethers.BigNumber.from("1000000000000000");
 const availablesID=[0,1,2,3,4,5,6,7,8,9,10];
-const stars=[1,4,1,1,0,1,2,1,1,0,1];
+const stars=[1,3,1,1,0,1,2,5,1,1,1];
 const baseURI = "https://poseidondao.mypinata.cloud/ipfs/QmP9urnKMSDCAkzNyRJzmpJjbhmYuQbLPaYdunQdthYWAh/";
 describe("Metaborg Stars", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -227,15 +227,40 @@ describe("Metaborg Stars", function () {
         expect(await metaborgStars.balanceOf(address1.address)).to.equals(ethers.BigNumber.from("11"));
       });
 
-      it("Check if with 3 or 5 pack we receive a 3 or 4 stars", async function () {
+      it("Check if with pack2 we receive a 3 or 4 stars", async function () {
         const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
         const price1 = [10,20,30];
         const packs1 = [1,2,11];
         const index4Stars = 1
         await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
         await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});
+        //const events = await metaborgStars.queryFilter(metaborgStars.filters.Transfer());
+        //console.log(events[events.length - 2].args.tokenId + "-" + events[events.length - 1].args.tokenId);
         expect(await metaborgStars.ownerOf(index4Stars)).to.equals(address1.address);
       });
+
+      it("Check if with pack2 we receive correctly all pages", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
+        const price1 = [10,20,30];
+        const packs1 = [1,2,8];
+        const index4Stars = 1
+        await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[1]});
+        await metaborgStars.connect(address2).buyMetaborgStars({value: price1[2]});
+        await metaborgStars.connect(address2).buyMetaborgStars({value: price1[0]});
+        //expect(await metaborgStars.ownerOf(index4Stars)).to.equals(address1.address);
+      });
+
+      it("Check if with pack3 we receive a 4 or 5 stars", async function () {
+        const {metaborgStars, address1, address2} = await loadFixture(deploySmartContract);     
+        const price1 = [10,20,30];
+        const packs1 = [1,2,3];
+        const index4Stars = 7;
+        await metaborgStars.setGroupMetaData(price1, packs1, 0); // price[], pack[], group
+        await metaborgStars.connect(address1).buyMetaborgStars({value: price1[2]});
+        expect(await metaborgStars.ownerOf(index4Stars)).to.equals(address1.address);
+      });
+
 
 
 
@@ -244,5 +269,5 @@ describe("Metaborg Stars", function () {
 });
 /*
 const availablesID=[0,1,2,3,4,5,6,7,8,9,10];
-const stars=[1,4,1,1,0,1,2,1,1,0,3];
+const stars=[1,3,1,1,3,1,2,5,1,0,1];
 */

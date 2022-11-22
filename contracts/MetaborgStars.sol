@@ -208,8 +208,8 @@ contract MetaborgStars is ERC721Upgradeable {
         uint8 pageID;
         uint stars;
         for(uint index = uint(0); index < packsPagesNumber; index++) {
-            (pageID, tmpPagesAvailable, tmpStarsAvailable, stars) = buySinglePageAndGetPageID(tmpPagesAvailable, tmpStarsAvailable, index == packsPagesNumber.sub(1) && !specialPage && (packsPagesNumber == pack2 || packsPagesNumber == pack3));
-            stars == uint(3) || stars == uint(4) ? specialPage = true : true; 
+            (pageID, tmpPagesAvailable, tmpStarsAvailable, stars) = buySinglePageAndGetPageID(tmpPagesAvailable, tmpStarsAvailable, index == packsPagesNumber.sub(1) && !specialPage && (packsPagesNumber == pack2 || packsPagesNumber == pack3), packsPagesNumber == pack3 ? true : false);
+            stars == (packsPagesNumber == pack2 ? uint(3) : uint(4)) || stars == ((packsPagesNumber == pack2 ? uint(4) : uint(5))) ? specialPage = true : true; 
             randomIDList[index] = uint8(pageID);
         }
         availablePagesArray = new uint8[](tmpPagesAvailable.length);
@@ -229,10 +229,10 @@ contract MetaborgStars is ERC721Upgradeable {
         return true;
     }
 
-    function getForcedStarArray(uint8[] memory _starsArray) private pure returns(uint8[] memory, uint){
+    function getForcedStarArray(uint8[] memory _starsArray, bool _isPackType3) private pure returns(uint8[] memory, uint){
         uint resultIndex = 0;
         for(uint index = uint(0); index < _starsArray.length; index++){
-            if(_starsArray[index] == uint(3) || _starsArray[index] == uint(4)) {
+            if(_starsArray[index] == (!_isPackType3 ? uint(3) : uint(4)) || _starsArray[index] == (!_isPackType3 ? uint(4) : uint(5))) {
                 _starsArray[resultIndex] = uint8(index);
                 resultIndex++;
             }
@@ -240,11 +240,11 @@ contract MetaborgStars is ERC721Upgradeable {
         return (_starsArray, resultIndex); 
     }
 
-    function buySinglePageAndGetPageID(uint8[] memory _pagesAvailable, uint8[] memory _starsAvailable, bool _forceStar) private returns(uint8, uint8[] memory, uint8[] memory, uint8){ 
+    function buySinglePageAndGetPageID(uint8[] memory _pagesAvailable, uint8[] memory _starsAvailable, bool _forceStar, bool _isPackType3) private returns(uint8, uint8[] memory, uint8[] memory, uint8){ 
         uint8[] memory randomIndex = new uint8[](1);
         uint8[] memory pageID = new uint8[](1);
         if(_forceStar) {
-            (uint8[] memory availableForcedPagesArray, uint elements) = getForcedStarArray(_starsAvailable);
+            (uint8[] memory availableForcedPagesArray, uint elements) = getForcedStarArray(_starsAvailable, _isPackType3);
             elements > 0 ? randomIndex[0] = availableForcedPagesArray[getRandom(elements)] : randomIndex[0] = uint8(getRandom(_pagesAvailable.length));    
         } else {
             randomIndex[0] = uint8(getRandom(_pagesAvailable.length));           
