@@ -299,13 +299,11 @@ contract MetaborgStars is ERC721Upgradeable {
 
     function checkDuplicates(uint[] memory _IDs) public view returns(bool){
         bool r;
-        bool p;
+        bool f;
         for(uint i = uint(0); i < _IDs.length; i++){
-            for(uint j = uint(0); j < availablePagesArray.length; j++){
-                p || availablePagesArray[j] == _IDs[i] ? p = true : true;
-            }
-            r = r || p;
-            p = false;
+            for(uint j = uint(0); j < availablePagesArray.length; j++) f || availablePagesArray[j] == _IDs[i] ? f = true : true;
+            r = r || f;
+            f = false;
         }
         return r;
     }
