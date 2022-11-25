@@ -1,27 +1,38 @@
 // SPDX-License-Identifier: MIT
+// Smart Contract developed by MT
 
-pragma solidity ^0.8.3;
+/*
+  __  __ _____ _____  _    ____   ___  ____   ____   ____ _____  _    ____  ____  
+ |  \/  | ____|_   _|/ \  | __ ) / _ \|  _ \ / ___| / ___|_   _|/ \  |  _ \/ ___| 
+ | |\/| |  _|   | | / _ \ |  _ \| | | | |_) | |  _  \___ \ | | / _ \ | |_) \___ \ 
+ | |  | | |___  | |/ ___ \| |_) | |_| |  _ <| |_| |  ___) || |/ ___ \|  _ < ___) |
+ |_|  |_|_____| |_/_/   \_\____/ \___/|_| \_\\____| |____/ |_/_/   \_\_| \_\____/ 
+
+
+*/
+pragma solidity ^0.8.13;
 
 import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol'; 
 import '@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol'; 
 import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol'; 
+import "./filterRegistry/upgradeable/DefaultOperatorFiltererUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract MetaborgStars is ERC721Upgradeable {
+contract MetaborgStars is ERC721Upgradeable, DefaultOperatorFiltererUpgradeable, OwnableUpgradeable {
 
     using SafeMathUpgradeable for uint256;
     using SafeMathUpgradeable for uint8;
     using StringsUpgradeable for uint256; 
 
     uint private randomizerIndex;
-    address public owner;
     uint private ownerBalance;
     uint8[] private availablePagesArray; 
     uint8[] private availableStarsArray; 
     uint public blockDelay;
     address public ERC1155Address;
     string public baseURI;
-    uint8 visibility;
+    uint8 public visibility;
 
     /*
         @dev: It will be a waterfall check based on the order specified by priority
@@ -58,16 +69,12 @@ contract MetaborgStars is ERC721Upgradeable {
     event setBlockDelayEvent(uint oldDelay, uint newDelay);
     event setWhitelistEvent(address indexed to, bool isWhitelisted);
     event revealURIEvent(string oldURI, string newURI);
-    
-    modifier onlyOwner {
-        require(owner == msg.sender, "ONLY_OWNER_CAN_RUN_THIS_FUNCTION");
-        _;
-    }
 
     function initialize(uint[] memory _availableIDs, uint8[] memory _stars, string memory _baseURI, address _ERC1155Address) initializer public {
         __ERC721_init("Metaborg Five Stars by Giovanni Motta", "Metaborg Five Stars");
+        __Ownable_init();
+        __DefaultOperatorFilterer_init();
         require(!checkDuplicates(_availableIDs), "ONE_OR_MORE_ID_ALREADY_SET");
-        owner = msg.sender;
         ERC1155Address = _ERC1155Address;
         require(_stars.length < uint(256), "IPFS_LIST_TOO_LONG"); // Due to uint8 and project requirements
         for(uint index = uint(0); index < _stars.length; index++){
@@ -307,4 +314,21 @@ contract MetaborgStars is ERC721Upgradeable {
         }
         return r;
     }
+
+    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
+        public
+        override
+        onlyAllowedOperator(from)
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
 }

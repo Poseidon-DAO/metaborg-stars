@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
     // compilers: [{ version: "0.4.18", settings: {} }],
     // compilers: [{ version: "0.5.0", settings: {} }],
     // compilers: [{ version: "0.7.6", settings: {} }],
-    compilers: [{ version: "0.8.0"}, {version: "0.8.1"}, {version: "0.8.3", settings: {
+    compilers: [{ version: "0.8.0"}, {version: "0.8.1"}, {version: "0.8.13", settings: {
       optimizer: {
         enabled: true,
         runs: 10,
