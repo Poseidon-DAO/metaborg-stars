@@ -16,7 +16,7 @@ import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol'; 
 import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol'; 
-import "./filterRegistry/upgradeable/DefaultOperatorFiltererUpgradeable.sol";
+import "operator-filter-registry/src/upgradeable/DefaultOperatorFiltererUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract MetaborgStars is ERC721Upgradeable, DefaultOperatorFiltererUpgradeable, OwnableUpgradeable {
