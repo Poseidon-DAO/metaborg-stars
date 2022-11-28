@@ -188,8 +188,8 @@ contract MetaborgStars is ERC721Upgradeable, DefaultOperatorFiltererUpgradeable,
         uint8 tmpVisibility = visibility;
         bool result;
         tmpVisibility == uint8(visibilityInfo.OPEN) && _userGroup <= uint(3) ? result = true : true; // OPEN TO EVERYONE
-        tmpVisibility == uint8(visibilityInfo.OWNER) && _userGroup == uint(1) ? result = true : true; // OPEN TO OWNER
-        tmpVisibility == uint8(visibilityInfo.WHITELISTED) && _userGroup == uint(2) ? result = true : true; // OPEN TO WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.WHITELISTED) && _userGroup == uint(1) ? result = true : true; // OPEN TO WHITELISTED
+        tmpVisibility == uint8(visibilityInfo.OWNER) && _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER
         tmpVisibility == uint8(visibilityInfo.OWNER_OR_WHITELISTED) && _userGroup == uint(1) || _userGroup == uint(2) ? result = true : true; // OPEN TO OWNER OR WHITELISTED
         tmpVisibility == uint8(visibilityInfo.OWNER_AND_WHITELISTED) && _userGroup == uint(3) ? result = true : true; // OPEN TO OWNER AND WHITELISTED
         return result;
