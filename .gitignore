@@ -4,7 +4,7 @@ coverage
 coverage.json
 typechain
 typechain-types
-py
+
 py/metaborg_five_stars_issue_1_data
 #Hardhat files
 cache
